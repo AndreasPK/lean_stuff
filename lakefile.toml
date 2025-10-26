@@ -1,0 +1,14 @@
+name = "wt-lean-intro"
+version = "0.1.0"
+defaultTargets = ["wt-lean-intro"]
+
+[[lean_lib]]
+name = "WtLeanIntro"
+
+[[lean_exe]]
+name = "wt-lean-intro"
+root = "Main"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
