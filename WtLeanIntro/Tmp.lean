@@ -1,5 +1,9 @@
 import Lean
 
+import Lean.Parser.Term
+import Lean.Parser.Term.Basic
+import Lean.Parser.Tactic
+
 namespace WtLeanIntro
 
 #check Lean.Syntax
@@ -24,10 +28,6 @@ def isAdd11 : Syntax → Bool
 -- #eval isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[(Syntax.mkNumLit "1")])
 -- #eval showTactic (myGrind (1:Nat))
 
-syntax "rep" tactic : tactic
-
-
-
 
 syntax (name := add_ones_n ) "add_ones" : term
 
@@ -36,52 +36,62 @@ def sasdasdasd : Lean.Macro
   | `(add_ones) => `(1+1)
   | _ => Macro.throwUnsupported
 
-
--- #eval add_ones
-
 -- syntax (name := by_steps_n ) "by_steps" : tactic
 -- syntax (name := by_steps_n1 ) "by_steps" (term) : tactic
 syntax (name := by_steps_many ) "by_steps" (term:lead)+ : tactic
 
+set_option pp.explicit true
+open Tactic
 
--- @[macro by_steps_n1]
--- def by_stepsImpl : Lean.Macro
---   | `(tactic | by_steps $t:term ) => `(tactic| have _ : $t := by grind)
---   | _ => Macro.throwUnsupported
+-- (Tactic.seq1
+--  [(Tactic.simp "simp" (Tactic.optConfig []) [] [] [] [])
+--   ";"
+--   (Tactic.simpAll "simp_all" (Tactic.optConfig []) [] [] [])
+--   ";"
+--   (Tactic.grind "grind" (Tactic.optConfig []) [] [] [])])
+
+-- def mahSyntax : TSyntax `tactic :=
+def mkTacticSeq (tacs:List (TSyntax `tactic)) : TSyntax `tactic  :=
+  let s_tacs := tacs.map TSyntax.raw
+  let untyped_syn := Syntax.node (SourceInfo.none : SourceInfo) `Lean.Parser.Tactic.seq1 (List.toArray s_tacs)
+  let t : TSyntax `tactic := TSyntax.mk untyped_syn
+  t
+  -- Tatic.seq1 sorry
 
 @[macro by_steps_many]
 def by_stepsImplMany : Lean.Macro
-  | `(tactic | by_steps $t:term $ts:term) => do
+  | `(tactic | by_steps $t:term $ts:term*) => do
       -- let h1 : TSyntax `term := t
       -- let hs : List (TSyntax `term) := t :: ts.toList
       let mkHave (hyp:TSyntax `term) : MacroM (TSyntax `tactic)
-            :=`(tactic| have _ : $hyp := by grind; have __a : false = true := by sorry; grind )
+            :=`(tactic| have _ : $hyp := by first | rfl | simp | simp[*] | grind )
+
+      let args := t :: ts.toList
+      let hyps : List (TSyntax `tactic) <- args.mapM mkHave
+
+      -- causes "str" tactic not implemented error
+      let s_hyps : TSyntax `tactic := TSyntax.mk $ Syntax.mkSep (hyps.map TSyntax.raw).toArray (Syntax.mkStrLit ";")
+      dbg_trace s!"{s_hyps}"
 
       let s1 <- mkHave t
-      let seq <- `(tactic| simp; simp_all; grind)
-      -- let s2 <- `(2)
-      let syn := Syntax.mkSep #[s1,s1] (mkAtom " ")
-      dbg_trace s!"{seq}"
-      return s1
-
-      -- let r := `(tactic| have _ : $t := by grind)
-      -- r
+      pure s1
 
   | _ => Macro.throwUnsupported
 
-#check by_stepsImplMany (Syntax.mkApp (mkIdent `by_steps) #[TSyntax.mk $ mkAtom "true"])
+-- #check by_stepsImplMany (Syntax.mkApp (mkIdent `by_steps) #[TSyntax.mk $ mkAtom "true"])
 
 set_option pp.rawOnError true
 
-#check Term
+-- #check expandMacro? (Syntax.mkApp (mkIdent `by_steps) #[TSyntax.mk $ mkAtom "true"])
 
-def foob := Syntax
+-- def foob :=
 
 theorem foo2 : 1 + 1 = 2 := by
   -- simp[]
   -- have _ : true = true := by grind
-    by_steps (true = true) (true = true)
-
+  by_steps
+    (true = true)
+    (true = true)
     -- grind
 
 
