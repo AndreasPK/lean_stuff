@@ -1,6 +1,6 @@
 import Lean
 
-abbrev Name := String
+import WtLeanIntro.NameGen
 
 theorem addList : (ys = (name :: xs)) → name ∈ ys := by
   intro app_h
@@ -11,8 +11,6 @@ theorem lem_insert_hm {env:Std.HashMap Name Nat} {name:Name} {x:Nat} :
                       (env = Std.HashMap.insert old_env name x) → (name ∈ env) := by
   intro upd_h
   simp[upd_h]
-
-abbrev Env := Std.HashMap Name Nat
 
 -- def foo := Std.HashMap.get
 def addLet (env: Std.HashMap Name Nat) (name:Name) (val: Nat ) : Env :=

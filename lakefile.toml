@@ -12,3 +12,7 @@ root = "Main"
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
+
+[[require]]
+name = "Aesop"
+scope = "leanprover-community"

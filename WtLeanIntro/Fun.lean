@@ -1,5 +1,6 @@
 import Lean
 
+import Aesop
 abbrev Name := String
 
 abbrev Env := Std.HashMap Name Nat
@@ -18,6 +19,7 @@ def myExpr : Expr (HashSet.ofList ["x"]):= Expr.e_var "x" (by exact HashSet.mem_
 
 def myClosedExpr: Expr (HashSet.emptyWithCapacity) := Expr.e_let "x" (Expr.lit 42) (.e_var "x" (by exact HashSet.mem_insert_self))
 
+@[simp]
 theorem names_in_keys_in_env {names: InScopeVars} {env: Env}: names.toList ⊆ Std.HashMap.keys env → (k ∈ names →  k ∈ env)
   := by
     intro names_ss_keys
@@ -35,6 +37,32 @@ theorem hm_mem_insert_mem {names:InScopeVars} {env:Env} :
     have s1 {e} : (e ∈ env) → (e ∈ (env.insert k v)) := by intro elem_env ;simp[elem_env]
     have s2 {e}: (e ∈ env.keys) → (e ∈ (env.insert k v).keys) := by grind
     grind
+
+theorem empty_scope_ss {env:HashMap Name x}: (names = HashSet.emptyWithCapacity) →
+                                                       (env = HashMap.emptyWithCapacity)
+                                                       → (names.toList ⊆ env.keys) := by
+  intro empty_name
+  intro empty_env
+  -- convert_to names.toList.isEmpty
+  have h_1 : names.toList.isEmpty := by simp[empty_name]
+  have h_2 : env.keys.isEmpty := by simp[empty_env]
+  have h_3 : names.toList = [] := by grind
+  have h_4 : env.keys = [] := by grind
+  -- have h_5 : env.keys = names.toList := by rw[h_3,h_4]
+  -- -- simp_all
+
+  -- have h_1 : names.toList.isEmpty := by grind
+  -- have h_2 : env.keys.isEmpty := by grind
+  -- have h_3 : names.toList = [] := by grind
+  -- have h_4 : env.keys = [] := by grind
+  -- have h_5 : env.keys = names.toList := by grind
+  subst empty_env empty_name
+  simp_all only [List.isEmpty_nil, List.Subset.refl]
+  -- refine List.subset_def.mpr ?_
+
+
+#print empty_scope_ss
+
 
 def eval {names:InScopeVars} (expr : Expr names) (env : Env) (names_in_env: names.toList ⊆ Std.HashMap.keys env): Nat :=
   match expr with
@@ -56,6 +84,7 @@ def eval {names:InScopeVars} (expr : Expr names) (env : Env) (names_in_env: name
         have name_mem: n ∈ env := by exact names_in_keys_in_env names_in_env h
         env[n]
 
+#eval eval myClosedExpr (HashMap.emptyWithCapacity) (by simp)
 
 -- def addFvs
 --             (expr: Expr scope_in)
